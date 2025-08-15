@@ -1,0 +1,6 @@
+Query: people having conversation
+Matched Query: human people having conversation
+Confidence Score: 0.3001
+Bounding Box: (66, 44, 201, 179)
+Window Size: (135, 135)
+Crop Size: 135x135 pixels

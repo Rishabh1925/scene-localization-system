@@ -1,0 +1,6 @@
+Query: purple shirt person
+Matched Query: purple shirt person
+Confidence Score: 0.2922
+Bounding Box: (570, 630, 846, 814)
+Window Size: (276, 184)
+Crop Size: 276x184 pixels

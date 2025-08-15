@@ -1,0 +1,6 @@
+Query: advertisement on wall
+Matched Query: advertisement on wall
+Confidence Score: 0.2470
+Bounding Box: (144, 468, 469, 684)
+Window Size: (325, 216)
+Crop Size: 325x216 pixels

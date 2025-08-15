@@ -1,0 +1,6 @@
+Query: person in purple shirt
+Matched Query: person in purple shirt
+Confidence Score: 0.2765
+Bounding Box: (20, 40, 128, 148)
+Window Size: (108, 108)
+Crop Size: 108x108 pixels

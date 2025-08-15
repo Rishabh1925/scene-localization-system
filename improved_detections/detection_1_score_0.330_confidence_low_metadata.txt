@@ -1,0 +1,6 @@
+Query: yellow taxis on road
+Matched Query: yellow taxis on road
+Confidence Score: 0.3301
+Bounding Box: (442, 312, 601, 471)
+Window Size: (159, 159)
+Crop Size: 159x159 pixels

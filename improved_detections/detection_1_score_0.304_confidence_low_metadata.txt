@@ -1,0 +1,6 @@
+Query: person riding cycle
+Matched Query: person riding cycle
+Confidence Score: 0.3043
+Bounding Box: (380, 608, 610, 838)
+Window Size: (230, 230)
+Crop Size: 230x230 pixels

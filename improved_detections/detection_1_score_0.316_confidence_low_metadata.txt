@@ -1,0 +1,6 @@
+Query: person in orange shirt
+Matched Query: individual in orange shirt
+Confidence Score: 0.3162
+Bounding Box: (390, 690, 666, 874)
+Window Size: (276, 184)
+Crop Size: 276x184 pixels

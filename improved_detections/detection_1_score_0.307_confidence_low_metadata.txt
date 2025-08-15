@@ -1,0 +1,6 @@
+Query: black cars parked on road
+Matched Query: black cars parked on road
+Confidence Score: 0.3067
+Bounding Box: (594, 330, 793, 529)
+Window Size: (199, 199)
+Crop Size: 199x199 pixels
