@@ -27,11 +27,11 @@ Choose one of the following methods:
 
 #### Option A: Git Clone (Recommended)
 ```bash
-# Clone the repository
-git clone https://github.com/Rishabh1925/scene_localization_system.git
-
 # Navigate to the project directory
 cd scene_localization_system
+
+# Clone the repository
+git clone https://github.com/Rishabh1925/scene_localization_system.git
 ```
 
 #### Option B: Manual Download
