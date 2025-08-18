@@ -21,20 +21,31 @@ A powerful computer vision tool that uses CLIP (Contrastive Language-Image Pre-T
 
 ## Installation
 
-### Step 1: Download File
-- Create a new folder on your computer and name it `SceneLocalization`
-- Download the `scene_localizer.py` file and place it inside the `SceneLocalization` folder
+### Step 1: Get the Project
 
-### Step 2: Navigate to Directory
+Choose one of the following methods:
+
+#### Option A: Git Clone (Recommended)
 ```bash
-# Navigate to the directory containing the script
-cd /path/to/scene_localizer
+# Clone the repository
+git clone https://github.com/Rishabh1925/scene_localization_system.git
+
+# Navigate to the project directory
+cd scene_localization_system
 ```
 
-### Step 3: Install Dependencies
+#### Option B: Manual Download
+- Create a new folder on your computer and name it `SceneLocalization`
+- Download the `scene_localizer.py` file and place it inside the `SceneLocalization` folder
+- Navigate to the directory:
+```bash
+cd /path/to/SceneLocalization
+```
+
+### Step 2: Install Dependencies
 
 #### Option A: Create `requirements.txt` (Recommended)
-Inside the `SceneLocalization` folder, create a file named `requirements.txt` and add the following content to it:
+Inside the project folder, create a file named `requirements.txt` and add the following content to it:
 ```
 torch>=1.9.0
 torchvision>=0.10.0
@@ -62,14 +73,13 @@ conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch -c nvi
 pip install transformers opencv-python pillow matplotlib scipy
 ```
 
-
-### Step 4: Verify Installation
+### Step 3: Verify Installation
 Test your installation by running:
 ```bash
 python -c "import torch, transformers, cv2, PIL; print('All dependencies installed successfully!')"
 ```
 
-### Step 5: Create Virtual Environment
+### Step 4: Create Virtual Environment (Optional but Recommended)
 
 **Windows:**
 ```cmd
