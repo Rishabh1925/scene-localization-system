@@ -1,5 +1,5 @@
-torch>=1.9.0
-torchvision>=0.10.0
+torch>=1.9.0 --index-url https://download.pytorch.org/whl/cpu
+torchvision>=0.10.0 --index-url https://download.pytorch.org/whl/cpu
 transformers>=4.21.0
 opencv-python-headless>=4.5.0
 pillow>=8.0.0
