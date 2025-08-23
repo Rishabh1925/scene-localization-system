@@ -158,18 +158,19 @@ Crop Size: 222x233 pixels
 scene-localization-system/
 │
 ├── app.py                         # Main Flask web application
+├── index.html                     # HTML templates
 ├── README.md                      # Documentation
 ├── requirements.txt               # Python dependencies
-│                    
-├── index.html                     # HTML templates
+├── scene_localizer.py
+│ 
 │
-├── scene_env/                     # Virtual environment
+├── scene_env/                     # Virtual environment (After you create it)
 │
 ├── static/       
 │   └── images/
-│       ├── test1.jpg
-│       ├── test2.png
-│       └── test3.png       
+│     ├── test1.jpg
+│     ├── test2.png
+│     └── test3.png       
 │
 └── improved_detections/           # Output folder
     ├── detection_1_score_0.647_confidence_high.jpg
