@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SceneFind - AI-Powered Image Analysis</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 25%, #16213e  50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #e4e4e7;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 24px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .logo-icon {
+            width: 52px;
+            height: 52px;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 8px 32px rgba(59, 130, 246, 0.3);
+        }
+
+        .header h1 {
+            font-size: 3.2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6, #06b6d4);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 16px;
+            letter-spacing: -0.02em;
+        }
+
+        .header p {
+            font-size: 1.25rem;
+            color: #a1a1aa;
+            max-width: 600px;
+            margin: 0 auto;
+            font-weight: 400;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background: rgba(24, 24, 27, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(63, 63, 70, 0.4);
+            border-radius: 24px;
+            padding: 32px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(59, 130, 246, 0.4);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 28px;
+        }
+
+        .card-icon {
+            width: 24px;
+            height: 24px;
+            color: #3b82f6;
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #f4f4f5;
+        }
+
+        .upload-zone {
+            border: 2px dashed rgba(63, 63, 70, 0.6);
+            border-radius: 16px;
+            padding: 48px 24px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            background: rgba(39, 39, 42, 0.3);
+        }
+
+        .upload-zone:hover {
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        .upload-zone.dragover {
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+            transform: scale(1.02);
+        }
+
+        .upload-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .upload-icon {
+            width: 64px;
+            height: 64px;
+            color: #71717a;
+            transition: color 0.3s ease;
+        }
+
+        .upload-zone:hover .upload-icon {
+            color: #3b82f6;
+        }
+
+        .upload-text {
+            font-size: 1.1rem;
+            color: #a1a1aa;
+            font-weight: 500;
+        }
+
+        .upload-subtext {
+            font-size: 0.9rem;
+            color: #71717a;
+        }
+
+        #imageInput {
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 16px 24px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 16px 40px rgba(59, 130, 246, 0.4);
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        }
+
+        .btn:disabled {
+            background: linear-gradient(135deg, #52525b, #3f3f46);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-secondary {
+            background: rgba(63, 63, 70, 0.8);
+            border: 1px solid rgba(113, 113, 122, 0.4);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: rgba(82, 82, 91, 0.8);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        .input-field {
+            width: 100%;
+            background: rgba(39, 39, 42, 0.6);
+            border: 1px solid rgba(63, 63, 70, 0.6);
+            border-radius: 12px;
+            padding: 16px 20px;
+            font-size: 1rem;
+            color: #f4f4f5;
+            transition: all 0.3s ease;
+            margin-bottom: 24px;
+        }
+
+        .input-field::placeholder {
+            color: #71717a;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            background: rgba(39, 39, 42, 0.8);
+        }
+
+        .btn-analyze {
+            width: 100%;
+            background: linear-gradient(135deg, #10b981, #059669);
+            padding: 18px;
+            font-size: 1.1rem;
+        }
+
+        .btn-analyze:hover:not(:disabled) {
+            background: linear-gradient(135deg, #059669, #047857);
+            box-shadow: 0 16px 40px rgba(16, 185, 129, 0.4);
+        }
+
+        .image-preview {
+            border-radius: 16px;
+            overflow: hidden;
+            position: relative;
+            background: rgba(24, 24, 27, 0.6);
+            border: 1px solid rgba(63, 63, 70, 0.4);
+        }
+
+        .preview-image {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .detection-box {
+            position: absolute;
+            border: 3px solid #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+            border-radius: 6px;
+            pointer-events: none;
+            animation: pulse-detection 2s infinite;
+        }
+
+        @keyframes pulse-detection {
+            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            50% { opacity: 0.8; box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+        }
+
+        .results-placeholder {
+            text-align: center;
+            padding: 60px 20px;
+            color: #71717a;
+        }
+
+        .placeholder-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 24px;
+            opacity: 0.6;
+        }
+
+        .loading-state {
+            display: none;
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid rgba(59, 130, 246, 0.2);
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .result-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 16px;
+            margin-top: 24px;
+        }
+
+        .metric-card {
+            background: rgba(39, 39, 42, 0.6);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid rgba(63, 63, 70, 0.4);
+        }
+
+        .metric-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #3b82f6;
+            margin-bottom: 4px;
+        }
+
+        .metric-label {
+            font-size: 0.85rem;
+            color: #a1a1aa;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .features-section {
+            background: rgba(24, 24, 27, 0.6);
+            border: 1px solid rgba(63, 63, 70, 0.4);
+            border-radius: 24px;
+            padding: 40px;
+            margin-top: 40px;
+        }
+
+        .features-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .features-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #f4f4f5;
+            margin-bottom: 12px;
+        }
+
+        .features-subtitle {
+            color: #a1a1aa;
+            font-size: 1.1rem;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 28px;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            padding: 24px;
+            background: rgba(39, 39, 42, 0.4);
+            border-radius: 16px;
+            border: 1px solid rgba(63, 63, 70, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .feature-item:hover {
+            background: rgba(39, 39, 42, 0.6);
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        .feature-icon {
+            width: 24px;
+            height: 24px;
+            color: #3b82f6;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .feature-content h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #f4f4f5;
+            margin-bottom: 8px;
+        }
+
+        .feature-content p {
+            color: #a1a1aa;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .example-queries {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .query-tag {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: #93c5fd;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .query-tag:hover {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
+            border-color: #3b82f6;
+            color: #dbeafe;
+            transform: translateY(-2px);
+        }
+
+        .alert {
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-top: 16px;
+            display: none;
+            font-weight: 500;
+        }
+
+        .alert-error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #6ee7b7;
+        }
+
+        .tech-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(139, 92, 246, 0.1);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            color: #c4b5fd;
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+                gap: 24px;
+            }
+            
+            .header h1 {
+                font-size: 2.5rem;
+            }
+            
+            .container {
+                padding: 24px 16px;
+            }
+
+            .card {
+                padding: 24px;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .powered-by {
+            text-align: center;
+            margin-top: 32px;
+            padding-top: 32px;
+            border-top: 1px solid rgba(63, 63, 70, 0.4);
+        }
+
+        .powered-by p {
+            color: #71717a;
+            font-size: 0.9rem;
+            margin-bottom: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="logo">
+                <div class="logo-icon">🎯</div>
+                <h1>SceneFind</h1>
+            </div>
+            <p>Locate anything in your images with natural language queries using advanced CLIP-based AI</p>
+        </header>
+
+        <div class="main-grid">
+            <div class="card">
+                <div class="card-header">
+                    <svg class="card-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    <h2 class="card-title">Upload & Query</h2>
+                </div>
+                
+                <div class="upload-zone" id="uploadArea">
+                    <div class="upload-content">
+                        <svg class="upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                        </svg>
+                        <div class="upload-text">Drop your image here</div>
+                        <div class="upload-subtext">or click to browse</div>
+                        <button class="btn btn-secondary" onclick="document.getElementById('imageInput').click()">
+                            Choose Image
+                        </button>
+                    </div>
+                    <input type="file" id="imageInput" accept="image/*">
+                </div>
+
+                <input 
+                    type="text" 
+                    class="input-field" 
+                    id="queryInput" 
+                    placeholder="What are you looking for? (e.g., 'person walking', 'red car', 'street vendor')"
+                >
+
+                <button class="btn btn-analyze" id="analyzeBtn" disabled>
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    Analyze Scene
+                </button>
+
+                <div class="example-queries">
+                    <div class="query-tag">person talking</div>
+                    <div class="query-tag">red car</div>
+                    <div class="query-tag">dog playing</div>
+                    <div class="query-tag">street vendor</div>
+                    <div class="query-tag">people walking</div>
+                    <div class="query-tag">building entrance</div>
+                </div>
+
+                <div class="alert alert-error" id="errorAlert"></div>
+                <div class="alert alert-success" id="successAlert"></div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <svg class="card-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                    </svg>
+                    <h2 class="card-title">Detection Results</h2>
+                </div>
+
+                <div class="loading-state" id="loadingState">
+                    <div class="spinner"></div>
+                    <p>Analyzing your image with AI...</p>
+                </div>
+
+                <div id="resultsContent">
+                    <div class="results-placeholder">
+                        <svg class="placeholder-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        <h3 style="font-size: 1.2rem; font-weight: 600; color: #a1a1aa; margin-bottom: 8px;">Upload an image to start</h3>
+                        <p>Your AI-powered detection results will appear here with confidence scores and bounding boxes</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <section class="features-section">
+            <div class="features-header">
+                <h2 class="features-title">Powered by Advanced AI</h2>
+                <p class="features-subtitle">Our system uses state-of-the-art CLIP technology for precise object localization</p>
+                <div style="margin-top: 16px;">
+                    <span class="tech-badge">
+                        <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        CLIP ViT-B/32
+                    </span>
+                    <span class="tech-badge">
+                        <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z"/>
+                        </svg>
+                        Smart Query Expansion
+                    </span>
+                    <span class="tech-badge">
+                        <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
+                        </svg>
+                        Adaptive Windows
+                    </span>
+                </div>
+            </div>
+
+            <div class="features-grid">
+                <div class="feature-item">
+                    <svg class="feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                    <div class="feature-content">
+                        <h3>Smart Query Expansion</h3>
+                        <p>Automatically generates query variations like "person talking" → "two people conversing" for better detection accuracy</p>
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <svg class="feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/>
+                    </svg>
+                    <div class="feature-content">
+                        <h3>Adaptive Window Sizing</h3>
+                        <p>Dynamically adjusts detection windows based on image dimensions for optimal object detection across different scales</p>
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <svg class="feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                    </svg>
+                    <div class="feature-content">
+                        <h3>Confidence Scoring</h3>
+                        <p>Provides detailed confidence scores and quality assessments for each detection with high/medium/low ratings</p>
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <svg class="feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2h4a1 1 0 011 1v2a1 1 0 01-1 1h-1v12a2 2 0 01-2 2H6a2 2 0 01-2-2V8H3a1 1 0 01-1-1V5a1 1 0 011-1h4z"/>
+                    </svg>
+                    <div class="feature-content">
+                        <h3>Multiple Detections</h3>
+                        <p>Finds up to 3 best matches per query with non-maximum suppression to avoid overlapping detections</p>
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <svg class="feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    <div class="feature-content">
+                        <h3>Professional Visualization</h3>
+                        <p>Creates high-quality result images with bounding boxes, crops, and detailed metadata for each detection</p>
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <svg class="feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <div class="feature-content">
+                        <h3>Format Support</h3>
+                        <p>Supports multiple image formats including JPG, PNG, BMP, TIFF, WebP, and GIF with automatic preprocessing</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="powered-by">
+            <p>Powered by OpenAI CLIP and advanced computer vision</p>
+        </div>
+    </div>
+
+    <script
