@@ -1,3 +1,5 @@
+import matplotlib
+matplotlib.use('Agg')
 import torch
 import torchvision.transforms as transforms
 from transformers import CLIPProcessor, CLIPModel
