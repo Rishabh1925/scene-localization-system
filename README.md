@@ -1,4 +1,4 @@
-# Improved Scene Localization System
+# Scene Localization System
 
 A powerful computer vision tool that uses CLIP (Contrastive Language-Image Pre-Training) to locate and identify objects or scenes in images based on natural language queries.
 
@@ -11,150 +11,116 @@ A powerful computer vision tool that uses CLIP (Contrastive Language-Image Pre-T
 - **Multiple Detection Support**: Finds up to 3 best matches per query
 - **Metadata Export**: Saves detailed information about each detection
 
-## Requirements
+## System Requirements
 
-### System Requirements
 - Python 3.7 or higher
 - CUDA-compatible GPU (optional but recommended for faster processing)
 - At least 4GB RAM
 - 2GB free disk space for model downloads
 
-## Installation
+## Quick Start
 
-### Step 1: Get the Project
+### 1. Create Project Directory
 
-Choose one of the following methods:
-
-#### Option A: Git Clone (Recommended)
-```bash
-# Navigate to the project directory
-cd scene_localization_system
-
-# Clone the repository
-git clone https://github.com/Rishabh1925/scene_localization_system.git
-```
-
-#### Option B: Manual Download
-- Create a new folder on your computer and name it `SceneLocalization`
-- Download the `scene_localizer.py` file and place it inside the `SceneLocalization` folder
-- Navigate to the directory:
-```bash
-cd /path/to/SceneLocalization
-```
-
-### Step 2: Install Dependencies
-
-#### Option A: Create `requirements.txt` (Recommended)
-Inside the project folder, create a file named `requirements.txt` and add the following content to it:
-```
-torch>=1.9.0
-torchvision>=0.10.0
-transformers>=4.21.0
-opencv-python>=4.5.0
-pillow>=8.0.0
-matplotlib>=3.3.0
-numpy>=1.19.0
-scipy>=1.7.0
-```
-
-Then install with:
-```bash
-pip install -r requirements.txt
-```
-
-#### Option B: Using pip
-```bash
-pip install torch torchvision transformers opencv-python pillow matplotlib numpy scipy
-```
-
-#### Option C: Using conda
-```bash
-conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch -c nvidia
-pip install transformers opencv-python pillow matplotlib scipy
-```
-
-### Step 3: Verify Installation
-Test your installation by running:
-```bash
-python -c "import torch, transformers, cv2, PIL; print('All dependencies installed successfully!')"
-```
-
-### Step 4: Create Virtual Environment (Optional but Recommended)
+First, create a new folder on your computer for this project:
 
 **Windows:**
 ```cmd
-# Create virtual environment
-python -m venv scene_env
-
-# Activate virtual environment
-scene_env\Scripts\activate
+mkdir scene-localization
+cd scene-localization
 ```
 
 **macOS/Linux:**
 ```bash
-# Create virtual environment
-python3 -m venv scene_env
+mkdir scene-localization
+cd scene-localization
+```
 
-# Activate virtual environment
+### 2. Clone the Repository
+
+```bash
+git clone https://github.com/Rishabh1925/scene_localization_system.git
+cd scene_localization_system
+```
+
+### 3. Set Up Virtual Environment (Recommended)
+
+**macOS/Linux:**
+```bash
+python3 -m venv scene_env
 source scene_env/bin/activate
 ```
 
-## Project Structure
-
+**Windows:**
+```cmd
+python -m venv scene_env
+scene_env\Scripts\activate
 ```
-scene-localization-system/
-│
-├── scene_localizer.py          # Main application script
-├── README.md                   # This documentation file
-├── requirements.txt            # Python dependencies
-│            
-├── street_scene.jpg
-├── market_photo.png
-├── office_meeting.jpeg
-├── park_dogs.bmp
-│
-├── scene_env/                  # Virtual Environment Folder Created
-│
-└── improved_detections/        
-    ├── detection_1_score_0.647_confidence_high.jpg
-    ├── detection_1_score_0.647_confidence_high_metadata.txt
-    ├── detection_2_score_0.423_confidence_medium.jpg
-    └── detection_2_score_0.423_confidence_medium_metadata.txt
+
+### 4. Install Dependencies
+
+Create a `requirements.txt` file with the following content:
+
+```txt
+torch
+torchvision
+transformers
+opencv-python
+numpy
+Pillow
+matplotlib
+scipy
+flask
+flask-cors
+```
+
+Then install:
+
+```bash
+pip install -r requirements.txt
+```
+
+### 5. Verify Installation
+
+```bash
+python -c "import torch, transformers, cv2, PIL, flask; print('All dependencies installed successfully!')"
 ```
 
 ## Usage
 
-### Basic Usage
+### Starting the Application
 
-1. **Place your images** in the same directory as `scene_localizer.py`
-   - Supported formats: JPG, JPEG, PNG, BMP, TIFF, WebP, GIF
+1. Start the web application:
+   ```bash
+   python app.py
+   ```
+2. Open your web browser and navigate to `http://127.0.0.1:5000` (or the address displayed in your terminal)
+3. Upload your image files (JPG, JPEG, PNG, BMP, TIFF, WebP, GIF) through the web interface
+4. Enter your search queries and click "Analyze Image"
+5. **Please be patient!** The analysis takes time to process (usually 1 - 5 minutes depending on your hardware and image complexity). The system is running complex AI computations in the background.
 
-2. **Command Line Usage**
+## While You Wait...
 
-```bash
-# Run the script
-python scene_localizer.py
-```
+**Think About This Project:**
+- How do you think this system combines computer vision and natural language processing?
+- What makes CLIP special compared to traditional image recognition systems?
+- Why might the sliding window approach be effective for object localization?
 
-3. **Follow the interactive prompts**:
-   - Select an image (if multiple are available)
-   - Enter search queries when prompted
-   - View results in the generated visualization
+**Fun CLIP & Vision Transformer Trivia:**
+- **CLIP stands for**: Contrastive Language-Image Pre-Training - it learned from 400 million image-text pairs!
+- **ViT Revolution**: Vision Transformers (ViT) proved that the transformer architecture (originally for text) could beat CNNs at image tasks
+- **Zero-shot Magic**: CLIP can recognize objects it was never explicitly trained to identify - it just needs a text description
+- **Multimodal Learning**: CLIP understands both images AND text in the same mathematical space - that's why you can search images with natural language
 
 ## Output Files
 
-### Main Visualization (`improved_result.jpg`)
-- Shows the original image with bounding boxes around detected objects
-- Displays confidence scores and quality ratings
-- Includes cropped regions for detailed inspection
+The system generates:
 
-### Individual Detections (`improved_detections/` folder)
-Each detection is saved as:
-- `detection_1_score_0.647_confidence_high.jpg` - Cropped image
-- `detection_1_score_0.647_confidence_high_metadata.txt` - Detailed information
+- **`improved_result.jpg`**: Main visualization with bounding boxes, confidence scores, and quality ratings
+- **`improved_detections/` folder**: Individual cropped images and metadata files for each detection
 
-### Metadata File Contents
-```
+Example metadata file:
+```txt
 Query: person talking
 Matched Query: two people conversing
 Confidence Score: 0.6470
@@ -163,67 +129,78 @@ Window Size: (200, 200)
 Crop Size: 222x233 pixels
 ```
 
-## Query Examples
+## Query Tips
 
 ### Good Query Examples
+
 - **Specific objects**: "red car", "brown dog", "person wearing hat"
-- **Actions**: "person walking", "dog running", "people talking"
-- **Scenes**: "street vendor", "market stall", "outdoor café"
+- **Actions**: "person walking", "dog running"
+- **Scenes**: "street vendor", "outdoor café"
 - **Relationships**: "two people conversing", "person with bicycle"
 
-### Tips for Better Results
-1. **Be specific**: "red sports car" vs "car"
-2. **Use descriptive adjectives**: "elderly person", "large building"
-3. **Include context**: "person selling goods", "dog playing in park"
-4. **Try variations**: If one query doesn't work, try synonyms
+### Best Practices
 
-### Performance Optimization
-
-#### For Faster Processing
-1. **Use GPU**: Install CUDA-compatible PyTorch
-2. **Reduce image size**: Resize large images (>2000px) before processing
-3. **Use specific queries**: Avoid overly broad terms
-
-#### For Better Accuracy
-1. **High-quality images**: Use clear, well-lit images
-2. **Appropriate size**: Images should be at least 400x400 pixels
-3. **Visible objects**: Ensure target objects are clearly visible and not occluded
+- **Be specific**: Use descriptive terms like "red sports car" instead of just "car"
+- **Try alternatives**: Use synonyms if initial queries don't work
+- **Use high-quality images**: Clear, well-lit images with visible objects work best
+- **Optimize image size**: Resize large images (>2000px) for better performance
+- **Use GPU acceleration**: CUDA-compatible GPU recommended for faster processing
 
 ## Technical Details
 
-### Model Information
 - **Base Model**: OpenAI CLIP-ViT-B/32
-- **Input Resolution**: 224x224 pixels (for CLIP processing)
-- **Feature Dimensions**: 512-dimensional embeddings
-- **Languages Supported**: English (primary), limited multilingual support
+- **Input Resolution**: Images processed at 224x224 pixels
+- **Algorithm**: Sliding window with cosine similarity between CLIP embeddings, non-maximum suppression for overlapping detections
 
-### Detection Algorithm
-1. **Image Preprocessing**: Resize and normalize input images
-2. **Query Expansion**: Generate semantic variations of input queries
-3. **Sliding Window**: Apply adaptive window sizes across the image
-4. **Feature Extraction**: Extract CLIP embeddings for image regions and text queries
-5. **Similarity Computation**: Calculate cosine similarity between image and text features
-6. **Non-Maximum Suppression**: Remove overlapping detections
-7. **Confidence Filtering**: Keep only high-confidence results
+## Project Structure
 
-## License
+```
+scene-localization-system/
+│
+├── app.py                         # Main Flask web application
+├── README.md                      # Documentation
+├── requirements.txt               # Python dependencies
+│                    
+├── index.html                     # HTML templates
+│
+├── scene_env/                     # Virtual environment
+│
+├── static/       
+│   └── images/
+│       ├── test1.jpg
+│       ├── test2.png
+│       └── test3.png       
+│
+└── improved_detections/           # Output folder
+    ├── detection_1_score_0.647_confidence_high.jpg
+    ├── detection_1_score_0.304_confidence_low.jpg
+    └── ...
+```
 
-This project uses the following open-source components:
-- **CLIP Model**: MIT License (OpenAI)
+## 📄 License
+
+This project uses components under the following licenses:
+
+- **CLIP Model**: MIT License
 - **PyTorch**: BSD License
-- **Transformers**: Apache 2.0 License (Hugging Face)
+- **Transformers**: Apache 2.0 License
 
-## Support
+## 🛠️ Troubleshooting
 
-For issues and questions:
-1. Check the troubleshooting section above
-2. Ensure all dependencies are properly installed
-3. Verify image files are in supported formats
-4. Check that images are clear and objects are visible
+If you encounter issues, check:
 
-## Version History
+1. All dependencies are properly installed
+2. Image files are in supported formats
+3. Objects you're searching for are clearly visible in the image
 
-- **v1.0**: Initial release with basic CLIP-based detection
-- **v2.0**: Added smart query expansion and adaptive windowing
-- **v2.1**: Improved visualization and metadata export
-- **v2.2**: Enhanced error handling and fallback detection
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## 📧 Support
+
+For questions or issues, please open an issue on GitHub or contact the maintainer.
+
+---
+
+**Made with ❤️ using CLIP and Python**
