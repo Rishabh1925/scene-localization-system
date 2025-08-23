@@ -676,4 +676,320 @@
         </div>
     </div>
 
-    <script
+    <script>
+        let selectedImage = null;
+        let imageFile = null;
+
+        // DOM elements
+        const uploadArea = document.getElementById('uploadArea');
+        const imageInput = document.getElementById('imageInput');
+        const queryInput = document.getElementById('queryInput');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const loadingState = document.getElementById('loadingState');
+        const resultsContent = document.getElementById('resultsContent');
+        const errorAlert = document.getElementById('errorAlert');
+        const successAlert = document.getElementById('successAlert');
+
+        // File upload handling
+        uploadArea.addEventListener('click', () => imageInput.click());
+        uploadArea.addEventListener('dragover', handleDragOver);
+        uploadArea.addEventListener('drop', handleDrop);
+        uploadArea.addEventListener('dragleave', handleDragLeave);
+        imageInput.addEventListener('change', handleFileSelect);
+        analyzeBtn.addEventListener('click', analyzeImage);
+
+        // Example query handling
+        document.querySelectorAll('.query-tag').forEach(tag => {
+            tag.addEventListener('click', () => {
+                queryInput.value = tag.textContent;
+                updateAnalyzeButton();
+            });
+        });
+
+        queryInput.addEventListener('input', updateAnalyzeButton);
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        }
+
+        function handleFileSelect(e) {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        }
+
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) {
+                showError('Please select a valid image file');
+                return;
+            }
+
+            if (file.size > 10 * 1024 * 1024) { // 10MB limit
+                showError('Image size must be less than 10MB');
+                return;
+            }
+
+            imageFile = file;
+            
+            // Create preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                selectedImage = e.target.result;
+                showImagePreview();
+                updateAnalyzeButton();
+                hideError();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function showImagePreview() {
+            const preview = `
+                <div class="image-preview">
+                    <img src="${selectedImage}" alt="Selected image" class="preview-image">
+                </div>
+                <div style="margin-top: 16px; text-align: center;">
+                    <p style="color: #10b981; font-weight: 600;">Image loaded successfully!</p>
+                    <p style="color: #a1a1aa; font-size: 0.9rem;">File: ${imageFile.name}</p>
+                </div>
+            `;
+            
+            uploadArea.innerHTML = `
+                <div class="upload-content">
+                    <svg class="upload-icon" style="width: 48px; height: 48px; color: #10b981;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    <div class="upload-text" style="color: #10b981;">Image Ready</div>
+                    <div class="upload-subtext">Click to change image</div>
+                    <button class="btn btn-secondary" onclick="document.getElementById('imageInput').click()">
+                        Choose Different Image
+                    </button>
+                </div>
+            `;
+        }
+
+        function updateAnalyzeButton() {
+            const hasImage = selectedImage !== null;
+            const hasQuery = queryInput.value.trim().length > 0;
+            
+            analyzeBtn.disabled = !(hasImage && hasQuery);
+            
+            if (hasImage && hasQuery) {
+                analyzeBtn.textContent = 'Analyze Scene';
+            } else if (!hasImage) {
+                analyzeBtn.textContent = 'Please upload an image first';
+            } else {
+                analyzeBtn.textContent = 'Please enter a search query';
+            }
+        }
+
+        async function analyzeImage() {
+            if (!selectedImage || !queryInput.value.trim()) {
+                showError('Please upload an image and enter a search query');
+                return;
+            }
+
+            // Show loading state
+            loadingState.style.display = 'block';
+            resultsContent.style.display = 'none';
+            analyzeBtn.disabled = true;
+            hideError();
+            hideSuccess();
+
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        image: selectedImage,
+                        query: queryInput.value.trim()
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Analysis failed');
+                }
+
+                displayResults(data);
+                showSuccess(data.message);
+
+            } catch (error) {
+                console.error('Analysis error:', error);
+                showError(`Analysis failed: ${error.message}`);
+                showEmptyResults();
+            } finally {
+                loadingState.style.display = 'none';
+                resultsContent.style.display = 'block';
+                updateAnalyzeButton();
+            }
+        }
+
+        function displayResults(data) {
+            if (!data.detections || data.detections.length === 0) {
+                showEmptyResults();
+                return;
+            }
+
+            let html = '';
+
+            // Show result image if available
+            if (data.result_image) {
+                html += `
+                    <div class="image-preview" style="margin-bottom: 24px;">
+                        <img src="${data.result_image}" alt="Detection results" class="preview-image">
+                    </div>
+                `;
+            } else {
+                // Show original image with detection boxes
+                html += `
+                    <div class="image-preview" style="margin-bottom: 24px; position: relative;">
+                        <img src="${selectedImage}" alt="Original image" class="preview-image">
+                        ${data.detections.map(det => `
+                            <div class="detection-box" style="
+                                left: ${det.bbox.x}px;
+                                top: ${det.bbox.y}px;
+                                width: ${det.bbox.width}px;
+                                height: ${det.bbox.height}px;
+                            "></div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            // Detection metrics
+            html += `
+                <div class="result-metrics">
+                    <div class="metric-card">
+                        <div class="metric-value">${data.total_detections}</div>
+                        <div class="metric-label">Detections</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" style="color: ${data.detections[0]?.confidence_color || '#3b82f6'}">
+                            ${data.detections[0]?.confidence || 'N/A'}
+                        </div>
+                        <div class="metric-label">Best Match</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">${Math.round((data.detections[0]?.score || 0) * 100)}%</div>
+                        <div class="metric-label">Confidence</div>
+                    </div>
+                </div>
+            `;
+
+            // Detection details
+            html += '<div style="margin-top: 24px;">';
+            data.detections.forEach((detection, index) => {
+                html += `
+                    <div style="
+                        background: rgba(39, 39, 42, 0.6);
+                        border: 1px solid rgba(63, 63, 70, 0.4);
+                        border-radius: 12px;
+                        padding: 20px;
+                        margin-bottom: 16px;
+                    ">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                            <div style="
+                                width: 32px;
+                                height: 32px;
+                                background: ${detection.confidence_color};
+                                border-radius: 50%;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                color: white;
+                                font-weight: bold;
+                            ">${detection.id}</div>
+                            <div>
+                                <div style="font-weight: 600; color: #f4f4f5;">Detection #${detection.id}</div>
+                                <div style="font-size: 0.9rem; color: #a1a1aa;">Score: ${detection.score}</div>
+                            </div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; font-size: 0.9rem;">
+                            <div>
+                                <div style="color: #a1a1aa;">Confidence</div>
+                                <div style="color: ${detection.confidence_color}; font-weight: 600;">${detection.confidence}</div>
+                            </div>
+                            <div>
+                                <div style="color: #a1a1aa;">Location</div>
+                                <div style="color: #f4f4f5;">(${detection.bbox.x}, ${detection.bbox.y})</div>
+                            </div>
+                            <div>
+                                <div style="color: #a1a1aa;">Size</div>
+                                <div style="color: #f4f4f5;">${detection.bbox.width} × ${detection.bbox.height}</div>
+                            </div>
+                        </div>
+                        ${detection.query_used !== queryInput.value.trim() ? `
+                            <div style="margin-top: 12px; padding: 8px 12px; background: rgba(59, 130, 246, 0.1); border-radius: 8px; border: 1px solid rgba(59, 130, 246, 0.3);">
+                                <div style="font-size: 0.85rem; color: #93c5fd;">Matched Query:</div>
+                                <div style="font-size: 0.9rem; color: #dbeafe;">"${detection.query_used}"</div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            resultsContent.innerHTML = html;
+        }
+
+        function showEmptyResults() {
+            resultsContent.innerHTML = `
+                <div class="results-placeholder">
+                    <svg class="placeholder-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <h3 style="font-size: 1.2rem; font-weight: 600; color: #ef4444; margin-bottom: 8px;">No detections found</h3>
+                    <p>Try adjusting your search query or using more specific terms</p>
+                    <div style="margin-top: 16px; font-size: 0.9rem; color: #71717a;">
+                        <p>Suggestions:</p>
+                        <p>• Use specific terms like "red car" instead of "car"</p>
+                        <p>• Try "person walking" instead of "pedestrian"</p>
+                        <p>• Check if the object is clearly visible</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function showError(message) {
+            errorAlert.textContent = message;
+            errorAlert.style.display = 'block';
+            successAlert.style.display = 'none';
+        }
+
+        function showSuccess(message) {
+            successAlert.textContent = message;
+            successAlert.style.display = 'block';
+            errorAlert.style.display = 'none';
+        }
+
+        function hideError() {
+            errorAlert.style.display = 'none';
+        }
+
+        function hideSuccess() {
+            successAlert.style.display = 'none';
+        }
+
+        // Initialize
+        updateAnalyzeButton();
+    </script>
+</body>
+</html>
