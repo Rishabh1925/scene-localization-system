@@ -1,204 +1,172 @@
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import os
-import tempfile
-import uuid
-from scene_localizer import ImprovedSceneLocalizer
 import base64
-from PIL import Image
 import io
+from PIL import Image
+from scene_localizer import ImprovedSceneLocalizer
+import traceback
 import json
 
-app = Flask(__name__, static_folder='.')
-CORS(app)  # Allow cross-origin requests
+app = Flask(__name__)
+CORS(app)
 
-# Initialize the localizer once when the app starts
-print("Initializing Scene Localizer...")
-localizer = ImprovedSceneLocalizer()
-print("Scene Localizer ready!")
+# Initialize the localizer
+localizer = None
+
+def initialize_localizer():
+    """Initialize the scene localizer"""
+    global localizer
+    if localizer is None:
+        try:
+            localizer = ImprovedSceneLocalizer()
+            print("Scene localizer initialized successfully")
+        except Exception as e:
+            print(f"Error initializing localizer: {e}")
+            traceback.print_exc()
 
 @app.route('/')
-def index():
+def serve_index():
+    """Serve the HTML file"""
     return send_from_directory('.', 'index.html')
 
-@app.route('/api/analyze', methods=['POST'])
-def analyze_scene():
+@app.route('/analyze', methods=['POST'])
+def analyze_image():
+    """Analyze image with query"""
     try:
-        # Check if image and query are provided
-        if 'image' not in request.files:
-            return jsonify({"error": "No image file provided"}), 400
+        # Initialize localizer if not done
+        if localizer is None:
+            initialize_localizer()
+            if localizer is None:
+                return jsonify({'error': 'Failed to initialize AI model'}), 500
         
-        if 'query' not in request.form:
-            return jsonify({"error": "No query provided"}), 400
+        # Get data from request
+        data = request.json
+        if not data:
+            return jsonify({'error': 'No data received'}), 400
         
-        image_file = request.files['image']
-        query = request.form['query'].strip()
+        image_data = data.get('image')
+        query = data.get('query')
         
-        if image_file.filename == '':
-            return jsonify({"error": "No image selected"}), 400
+        if not image_data or not query:
+            return jsonify({'error': 'Image and query are required'}), 400
         
-        if not query:
-            return jsonify({"error": "Query cannot be empty"}), 400
-        
-        # Create a temporary file for the uploaded image
-        # Using tempfile ensures proper cleanup even if something goes wrong
-        with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as temp_file:
-            temp_path = temp_file.name
-            
-            # Save the uploaded image to temporary file
-            image_file.save(temp_path)
-        
-        print(f"Processing image: {temp_path}")
-        print(f"Query: '{query}'")
-        
+        # Decode base64 image
         try:
-            # Run the scene localization
+            # Remove data URL prefix if present
+            if ',' in image_data:
+                image_data = image_data.split(',')[1]
+            
+            # Decode base64
+            image_bytes = base64.b64decode(image_data)
+            
+            # Save temporary image
+            temp_path = 'temp_image.jpg'
+            with open(temp_path, 'wb') as f:
+                f.write(image_bytes)
+            
+            print(f"Processing query: '{query}'")
+            
+        except Exception as e:
+            return jsonify({'error': f'Failed to process image: {str(e)}'}), 400
+        
+        # Run detection
+        try:
             detections = localizer.localize_scene(temp_path, query)
             
-            # Process results
-            if detections and len(detections) > 0:
-                # Get the best detection
-                best_detection = detections[0]
-                bbox = best_detection['bbox']
-                score = best_detection['score']
-                
-                # Load image to get dimensions for normalization
-                with Image.open(temp_path) as img:
-                    img_width, img_height = img.size
-                
-                # Normalize bounding box coordinates (0-1 range)
-                normalized_bbox = {
-                    "x": bbox[0] / img_width,
-                    "y": bbox[1] / img_height, 
-                    "width": (bbox[2] - bbox[0]) / img_width,
-                    "height": (bbox[3] - bbox[1]) / img_height
-                }
+            # Prepare response
+            results = []
+            for i, detection in enumerate(detections):
+                bbox = detection['bbox']
+                score = detection['score']
                 
                 # Determine confidence level
                 if score > 0.5:
-                    confidence_level = "High"
+                    confidence = 'High'
+                    confidence_color = '#10b981'
                 elif score > 0.35:
-                    confidence_level = "Medium"  
+                    confidence = 'Medium'
+                    confidence_color = '#f59e0b'
                 else:
-                    confidence_level = "Low"
+                    confidence = 'Low'
+                    confidence_color = '#ef4444'
                 
                 result = {
-                    "success": True,
-                    "query": query,
-                    "confidence": float(score),
-                    "confidenceLevel": confidence_level,
-                    "boundingBox": normalized_bbox,
-                    "description": f"Object detected with {confidence_level.lower()} confidence ({score:.1%})",
-                    "queryUsed": best_detection.get('query_used', query),
-                    "detectionCount": len(detections)
+                    'id': i + 1,
+                    'bbox': {
+                        'x': bbox[0],
+                        'y': bbox[1],
+                        'width': bbox[2] - bbox[0],
+                        'height': bbox[3] - bbox[1]
+                    },
+                    'score': round(score, 4),
+                    'confidence': confidence,
+                    'confidence_color': confidence_color,
+                    'query_used': detection.get('query_used', query)
                 }
-                
-                # Add additional detections if available
-                if len(detections) > 1:
-                    additional_detections = []
-                    for i, det in enumerate(detections[1:3], 2):  # Max 2 more
-                        det_bbox = det['bbox']
-                        additional_detections.append({
-                            "confidence": float(det['score']),
-                            "boundingBox": {
-                                "x": det_bbox[0] / img_width,
-                                "y": det_bbox[1] / img_height,
-                                "width": (det_bbox[2] - det_bbox[0]) / img_width,
-                                "height": (det_bbox[3] - det_bbox[1]) / img_height
-                            }
-                        })
-                    result["additionalDetections"] = additional_detections
-                
-            else:
-                result = {
-                    "success": False,
-                    "query": query,
-                    "confidence": 0.0,
-                    "confidenceLevel": "None",
-                    "boundingBox": {"x": 0, "y": 0, "width": 0, "height": 0},
-                    "description": "No confident detection found. Try rephrasing your query or using more specific terms.",
-                    "detectionCount": 0,
-                    "suggestions": [
-                        "Be more specific (e.g., 'red car' instead of 'car')",
-                        "Try alternative descriptions (e.g., 'person walking' vs 'pedestrian')",
-                        "Use broader categories if being too specific",
-                        "Ensure the object is clearly visible in the image"
-                    ]
-                }
+                results.append(result)
             
-            print(f"Analysis complete. Success: {result['success']}")
-            return jsonify(result)
-            
-        except Exception as processing_error:
-            print(f"Processing error: {processing_error}")
-            return jsonify({
-                "error": "Failed to process image", 
-                "details": str(processing_error),
-                "success": False
-            }), 500
-        
-        finally:
-            # Clean up: remove temporary file
+            # Clean up temp file
             try:
-                if os.path.exists(temp_path):
-                    os.remove(temp_path)
-                    print(f"Cleaned up temp file: {temp_path}")
-            except Exception as cleanup_error:
-                print(f"Warning: Could not clean up temp file: {cleanup_error}")
-    
+                os.remove(temp_path)
+            except:
+                pass
+            
+            # Check if result image exists
+            result_image_path = None
+            if os.path.exists('improved_result.jpg'):
+                # Convert result image to base64
+                try:
+                    with open('improved_result.jpg', 'rb') as f:
+                        result_image_data = base64.b64encode(f.read()).decode()
+                        result_image_path = f"data:image/jpeg;base64,{result_image_data}"
+                except:
+                    pass
+            
+            response = {
+                'success': True,
+                'detections': results,
+                'total_detections': len(results),
+                'result_image': result_image_path,
+                'message': f'Found {len(results)} detection(s)' if results else 'No confident detections found'
+            }
+            
+            return jsonify(response)
+            
+        except Exception as e:
+            print(f"Detection error: {e}")
+            traceback.print_exc()
+            return jsonify({'error': f'Detection failed: {str(e)}'}), 500
+            
     except Exception as e:
-        print(f"API error: {e}")
-        return jsonify({
-            "error": "Internal server error", 
-            "details": str(e),
-            "success": False
-        }), 500
+        print(f"Server error: {e}")
+        traceback.print_exc()
+        return jsonify({'error': f'Server error: {str(e)}'}), 500
 
-@app.route('/api/health', methods=['GET'])
+@app.route('/health')
 def health_check():
-    """Health check endpoint for monitoring"""
+    """Health check endpoint"""
     return jsonify({
-        "status": "healthy",
-        "model_loaded": localizer is not None,
-        "device": str(localizer.device) if localizer else "unknown"
+        'status': 'healthy',
+        'model_loaded': localizer is not None
     })
-
-@app.route('/api/info', methods=['GET']) 
-def get_info():
-    """Get system information"""
-    return jsonify({
-        "model": "CLIP-ViT-B/32",
-        "features": [
-            "Smart Query Expansion",
-            "Adaptive Window Sizing", 
-            "Confidence-Based Detection",
-            "Multiple Detection Support"
-        ],
-        "supported_formats": ["JPG", "JPEG", "PNG", "BMP", "TIFF", "WebP", "GIF"],
-        "max_detections": 3
-    })
-
-# Error handlers
-@app.errorhandler(413)
-def too_large(e):
-    return jsonify({"error": "File too large. Please use images under 16MB."}), 413
-
-@app.errorhandler(500)
-def internal_error(e):
-    return jsonify({"error": "Internal server error occurred"}), 500
 
 if __name__ == '__main__':
-    # Render sets PORT environment variable
-    port = int(os.environ.get('PORT', 10000))
-    debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
-    
-    print(f"Starting Flask app on host 0.0.0.0 port {port}")
-    print(f"Debug mode: {debug_mode}")
-    
-    # Ensure we bind to all interfaces and the correct port
-    app.run(
-        host='0.0.0.0', 
-        port=port, 
-        debug=False,  # Always False in production
-        threaded=True
-    )
+    # This check ensures messages only print once.
+    if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+        print("Starting Scene Localization Server...")
+        print("Initializing AI model (this may take a moment)...")
+
+    # Initialize the localizer.
+    initialize_localizer()
+
+    # This block also runs only once.
+    if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+        print("-" * 40)
+        print("Server is ready. Press Ctrl+C to stop.")
+        # This is the explicit instruction you wanted:
+        print("--> Open your browser and go to: http://127.0.0.1:5000")
+        print("-" * 40)
+
+    # Run the app.
+    app.run(debug=True, port=5000)
