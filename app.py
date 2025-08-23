@@ -189,15 +189,16 @@ def internal_error(e):
 
 if __name__ == '__main__':
     # Render sets PORT environment variable
-    port = int(os.environ.get('PORT', 5000))
+    port = int(os.environ.get('PORT', 10000))
     debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
     
-    print(f"Starting Flask app on port {port}")
+    print(f"Starting Flask app on host 0.0.0.0 port {port}")
     print(f"Debug mode: {debug_mode}")
     
+    # Ensure we bind to all interfaces and the correct port
     app.run(
         host='0.0.0.0', 
         port=port, 
-        debug=debug_mode,
-        threaded=True  # Handle multiple requests
+        debug=False,  # Always False in production
+        threaded=True
     )
