@@ -2,6 +2,11 @@
 
 A powerful computer vision tool that uses CLIP (Contrastive Language-Image Pre-Training) to locate and identify objects or scenes in images based on natural language queries.
 
+![Python](https://img.shields.io/badge/python-v3.8+-blue.svg)
+![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-red.svg)
+![Flask](https://img.shields.io/badge/Flask-2.3+-green.svg)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+
 ## Features
 
 - **Smart Query Expansion**: Automatically generates variations of your search query for better detection
@@ -178,7 +183,7 @@ scene-localization-system/
     └── ...
 ```
 
-## 📄 License
+## License
 
 This project uses components under the following licenses:
 
@@ -186,7 +191,7 @@ This project uses components under the following licenses:
 - **PyTorch**: BSD License
 - **Transformers**: Apache 2.0 License
 
-## 🛠️ Troubleshooting
+## Troubleshooting
 
 If you encounter issues, check:
 
@@ -194,14 +199,7 @@ If you encounter issues, check:
 2. Image files are in supported formats
 3. Objects you're searching for are clearly visible in the image
 
-## 🤝 Contributing
+## Support
 
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## 📧 Support
-
-For questions or issues, please open an issue on GitHub or contact the maintainer.
-
----
-
-**Made with ❤️ using CLIP and Python**
+- [**GitHub Issues**](https://github.com/Rishabh1925/food-classifier-model/issues)
+- [**Email**](rishabhranjansingh_mc24b06_019@dtu.ac.in)
