@@ -15,12 +15,11 @@ warnings.filterwarnings('ignore')
 
 class ImprovedSceneLocalizer:
     def __init__(self, device=None):
-        """Initializing scene localization system with proven techniques"""
+        """Initializing scene localization system"""
         self.device = device if device else ('cuda' if torch.cuda.is_available() else 'cpu')
-        print(f"Initializing Scene Localization System...")
+        print(f"\nInitializing Scene Localization System...")
         print(f"Using device: {self.device}")
         
-        # Use the most proven CLIP model for object detection
         print("Loading CLIP-ViT-B/32 Model...\n")
         self.model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
         self.processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
@@ -33,7 +32,6 @@ class ImprovedSceneLocalizer:
         """Load and validate image"""
         try:
             image = Image.open(image_path).convert('RGB')
-            # Ensure minimum size for effective detection
             if image.size[0] < 200 or image.size[1] < 200:
                 print("Image too small, resizing...")
                 image = image.resize((max(400, image.size[0]), max(400, image.size[1])), Image.Resampling.LANCZOS)
@@ -45,9 +43,7 @@ class ImprovedSceneLocalizer:
     def generate_smart_queries(self, original_query):
         """Generating contextually relevant query variations"""
         query_lower = original_query.lower().strip()
-        queries = [original_query]  # Always include original
-        
-        # Smart query expansion based on common patterns
+        queries = [original_query]
         query_expansions = {
             'person talking': [
                 'two people conversing', 'people having conversation', 
@@ -71,20 +67,18 @@ class ImprovedSceneLocalizer:
             'cat': ['feline', 'domestic cat', 'pet cat']
         }
         
-        # Find matching expansions
         for key, expansions in query_expansions.items():
             if key in query_lower:
-                queries.extend(expansions[:3])  # Limit to 3 expansions
+                queries.extend(expansions[:3])  
                 break
         else:
-            # Generic expansions for unmapped queries
             if 'person' in query_lower:
                 queries.append(query_lower.replace('person', 'human'))
                 queries.append(query_lower.replace('person', 'individual'))
             elif any(word in query_lower for word in ['man', 'woman', 'people']):
                 queries.append(f"human {query_lower}")
         
-        return list(dict.fromkeys(queries))[:5]  # Remove duplicates, limit to 5
+        return list(dict.fromkeys(queries))[:5]
     
     def adaptive_sliding_window(self, image, query_variations):
         """Sliding window"""
@@ -93,23 +87,20 @@ class ImprovedSceneLocalizer:
         
         print(f"Analyzing image: {w}x{h} pixels")
         
-        # Adaptive window sizes based on image dimensions
         base_size = min(w, h) // 4
         window_sizes = [
             (base_size, base_size),
             (int(base_size * 1.2), int(base_size * 1.2)),
             (int(base_size * 1.5), int(base_size * 1.5)),
-            (int(base_size * 0.8), int(base_size * 1.2)),  # Rectangular
-            (int(base_size * 1.2), int(base_size * 0.8)),  # Rectangular
+            (int(base_size * 0.8), int(base_size * 1.2)),  
+            (int(base_size * 1.2), int(base_size * 0.8)),  
         ]
         
-        # Filter out windows that are too large
         window_sizes = [(ws_w, ws_h) for ws_w, ws_h in window_sizes 
                        if ws_w <= w * 0.8 and ws_h <= h * 0.8]
         
         print(f"Using {len(window_sizes)} window sizes")
-        
-        # Process all query variations once
+    
         text_features_list = []
         for query in query_variations:
             text_inputs = self.processor(text=[query], return_tensors="pt", padding=True)
@@ -124,14 +115,12 @@ class ImprovedSceneLocalizer:
         positions = []
         
         for window_w, window_h in window_sizes:
-            # Adaptive stride - smaller for smaller windows
             stride = max(20, min(window_w, window_h) // 6)
             
             for y in range(0, h - window_h + 1, stride):
                 for x in range(0, w - window_w + 1, stride):
                     x2, y2 = x + window_w, y + window_h
                     
-                    # Extract and process window
                     window_img = image.crop((x, y, x2, y2))
                     
                     image_inputs = self.processor(images=window_img, return_tensors="pt", padding=True)
@@ -141,7 +130,6 @@ class ImprovedSceneLocalizer:
                         image_features = self.model.get_image_features(**image_inputs)
                         image_features = image_features / image_features.norm(dim=-1, keepdim=True)
                         
-                        # Calculate max similarity across all query variations
                         max_similarity = 0
                         best_query_idx = 0
                         
@@ -164,36 +152,31 @@ class ImprovedSceneLocalizer:
         if not positions:
             return []
         
-        # Find local maxima to avoid redundant detections
         scores_array = np.array(all_scores)
         
-        # Apply threshold - keep only reasonably confident detections
-        threshold = max(0.15, np.percentile(scores_array, 85))  # Adaptive threshold
+        threshold = max(0.15, np.percentile(scores_array, 85))  
         good_detections = [pos for pos, score in zip(positions, all_scores) if score >= threshold]
         
         if not good_detections:
-            # If no good detections, return the best one
             best_idx = np.argmax(scores_array)
             good_detections = [positions[best_idx]]
         
-        # Sort by score and apply NMS
         good_detections.sort(key=lambda x: x['score'], reverse=True)
         
-        # Improved NMS
         final_detections = []
-        for detection in good_detections[:10]:  # Consider top 10
+        for detection in good_detections[:10]: 
             bbox = detection['bbox']
             is_suppressed = False
             
             for final_det in final_detections:
                 iou = self.calculate_iou(bbox, final_det['bbox'])
-                if iou > 0.3:  # Suppress if significant overlap
+                if iou > 0.3: 
                     is_suppressed = True
                     break
             
             if not is_suppressed:
                 final_detections.append(detection)
-                if len(final_detections) >= 3:  # Return top 3
+                if len(final_detections) >= 3: 
                     break
         
         return final_detections
@@ -228,7 +211,6 @@ class ImprovedSceneLocalizer:
             h, w = image_rgb.shape[:2]
             
             if not detections:
-                # Show "no detection" result
                 fig, ax = plt.subplots(1, 1, figsize=(12, 8))
                 ax.imshow(image_rgb)
                 ax.set_title(f'Query: "{query_text}"\nNo confident detection found', 
@@ -246,10 +228,8 @@ class ImprovedSceneLocalizer:
                 plt.close()
                 return
             
-            # Create visualization based on number of detections
             num_detections = min(len(detections), 3)
             
-            # Handle subplot creation properly
             if num_detections == 0:
                 fig, ax = plt.subplots(1, 1, figsize=(12, 8))
                 axes = [ax]
@@ -257,8 +237,7 @@ class ImprovedSceneLocalizer:
                 total_plots = 1 + num_detections
                 fig_width = 6 * total_plots if total_plots <= 2 else 6 + 4 * (total_plots - 1)
                 fig, axes = plt.subplots(1, total_plots, figsize=(fig_width, 8))
-                
-                # Ensure axes is always a list
+
                 if total_plots == 1:
                     axes = [axes]
                 elif not isinstance(axes, (list, np.ndarray)):
@@ -266,26 +245,22 @@ class ImprovedSceneLocalizer:
                 else:
                     axes = list(axes) if isinstance(axes, np.ndarray) else axes
             
-            # Main image with all detections
             main_ax = axes[0]
             main_ax.imshow(image_rgb)
             main_ax.set_title(f'Query: "{query_text}"', fontsize=16, fontweight='bold', pad=20)
             main_ax.axis('off')
             
             colors = ['red', 'blue', 'green']
-            
-            # Draw bounding boxes with confidence indicators
+
             for i, detection in enumerate(detections[:3]):
                 bbox = detection['bbox']
                 score = detection['score']
                 color = colors[i % len(colors)]
-                
-                # Draw main bounding box
+
                 rect = plt.Rectangle((bbox[0], bbox[1]), bbox[2] - bbox[0], bbox[3] - bbox[1],
                                    fill=False, edgecolor=color, linewidth=4, alpha=0.8)
                 main_ax.add_patch(rect)
-                
-                # Confidence indicator
+
                 confidence_level = "High" if score > 0.5 else "Medium" if score > 0.35 else "Low"
                 text_color = 'white' if score > 0.35 else 'black'
                 
@@ -293,8 +268,7 @@ class ImprovedSceneLocalizer:
                             f'#{i+1}: {score:.3f} ({confidence_level})', 
                             bbox=dict(boxstyle="round,pad=0.4", facecolor=color, alpha=0.8),
                             fontsize=11, color=text_color, fontweight='bold')
-            
-            # Individual detection crops
+
             for i, detection in enumerate(detections[:num_detections]):
                 if i + 1 >= len(axes):
                     break
@@ -302,8 +276,7 @@ class ImprovedSceneLocalizer:
                 bbox = detection['bbox']
                 score = detection['score']
                 query_used = detection.get('query_used', query_text)
-                
-                # Ensure valid crop coordinates
+
                 y1, y2 = max(0, bbox[1]), min(h, bbox[3])
                 x1, x2 = max(0, bbox[0]), min(w, bbox[2])
                 
@@ -312,8 +285,7 @@ class ImprovedSceneLocalizer:
                     
                     ax = axes[i + 1]
                     ax.imshow(cropped)
-                    
-                    # Quality assessment
+
                     if score > 0.5:
                         quality = "Excellent Match"
                         title_color = 'green'
@@ -332,8 +304,7 @@ class ImprovedSceneLocalizer:
                     ax.axis('off')
             
             plt.tight_layout()
-            
-            # Save the figure
+
             try:
                 plt.savefig(save_path, dpi=200, bbox_inches='tight', facecolor='white', 
                            edgecolor='none', pad_inches=0.2)
@@ -342,31 +313,26 @@ class ImprovedSceneLocalizer:
                 print(f"Could not save visualization: {save_error}")
             
             plt.show()
-            plt.close()  # Important: close the figure to free memory
             
-            # Save individual crops with metadata
             try:
                 os.makedirs("improved_detections", exist_ok=True)
                 
                 for i, detection in enumerate(detections):
                     bbox = detection['bbox']
                     score = detection['score']
-                    
-                    # Ensure valid crop coordinates
+
                     y1, y2 = max(0, bbox[1]), min(h, bbox[3])
                     x1, x2 = max(0, bbox[0]), min(w, bbox[2])
                     
                     if y2 > y1 and x2 > x1:
                         cropped = image_rgb[y1:y2, x1:x2]
-                        
-                        # Save with detailed filename
+
                         confidence_label = 'high' if score > 0.5 else 'medium' if score > 0.35 else 'low'
                         crop_filename = f"improved_detections/detection_{i+1}_score_{score:.3f}_confidence_{confidence_label}.jpg"
                         
                         crop_pil = Image.fromarray(cropped)
                         crop_pil.save(crop_filename, quality=95, optimize=True)
-                        
-                        # Save metadata
+
                         metadata_file = crop_filename.replace('.jpg', '_metadata.txt')
                         with open(metadata_file, 'w') as f:
                             f.write(f"Query: {query_text}\n")
@@ -392,7 +358,6 @@ class ImprovedSceneLocalizer:
     def localize_scene(self, image_path, query_text):
         """Main localization function with robust error handling"""
         try:
-            # Validate inputs
             if not image_path:
                 raise ValueError("image_path cannot be empty or None")
             if not query_text:
@@ -402,33 +367,28 @@ class ImprovedSceneLocalizer:
             print(f"Query: '{query_text}'")
             print(f"Image: {image_path}")
             
-            # Verify image file exists
             if not os.path.exists(image_path):
                 print(f"Image file not found: {image_path}")
                 return []
             
-            # Load image
             image = self.preprocess_image(image_path)
             if image is None:
                 print("Failed to load image")
                 return []
             
             print(f"Image size: {image.size[0]}x{image.size[1]} pixels")
-            
-            # Generate smart query variations
+
             query_variations = self.generate_smart_queries(query_text)
             print(f"Using {len(query_variations)} query variations:")
             for i, q in enumerate(query_variations, 1):
                 print(f"   {i}. '{q}'")
-            
-            # Perform detection
+
             try:
                 detections = self.adaptive_sliding_window(image, query_variations)
             except Exception as detection_error:
                 print(f"Detection error: {detection_error}")
                 print("Trying with simplified parameters...")
-                
-                # Fallback to basic detection
+
                 try:
                     detections = self.basic_sliding_window_fallback(image, [query_text])
                 except Exception as fallback_error:
@@ -442,8 +402,7 @@ class ImprovedSceneLocalizer:
                 print("   - Use alternative descriptions (e.g., 'person walking' vs 'pedestrian')")
                 print("   - Try broader categories (e.g., 'vehicle' vs 'specific car model')")
                 print("   - Check if the object is clearly visible in the image")
-                
-                # Still create visualization to show the image
+
                 try:
                     self.create_professional_visualization(image_path, [], query_text)
                 except Exception as viz_error:
@@ -452,8 +411,7 @@ class ImprovedSceneLocalizer:
                 return []
             
             print(f"Found {len(detections)} confident detection(s)!")
-            
-            # Display results
+
             for i, det in enumerate(detections, 1):
                 bbox = det['bbox']
                 score = det['score']
@@ -467,8 +425,7 @@ class ImprovedSceneLocalizer:
                 print(f"     Size: {bbox[2]-bbox[0]}x{bbox[3]-bbox[1]} pixels")
                 if query_used != query_text:
                     print(f"     Matched query: '{query_used}'")
-            
-            # Create visualization
+
             try:
                 self.create_professional_visualization(image_path, detections, query_text)
             except Exception as viz_error:
@@ -493,15 +450,13 @@ class ImprovedSceneLocalizer:
         
         img_array = np.array(image)
         h, w = img_array.shape[:2]
-        
-        # Simple grid search with larger windows
+
         window_size = min(w, h) // 3
         stride = window_size // 2
         
         best_detection = None
         best_score = 0
-        
-        # Process query
+
         text_inputs = self.processor(text=query_list, return_tensors="pt", padding=True)
         text_inputs = {k: v.to(self.device) for k, v in text_inputs.items()}
         
@@ -546,8 +501,7 @@ def main():
     print("   - Professional visualization\n")
     
     localizer = ImprovedSceneLocalizer()
-    
-    # Check for uploaded images
+
     uploaded_files = []
     image_extensions = ['*.jpg', '*.jpeg', '*.png', '*.bmp', '*.tiff', '*.webp', '*.gif']
     
@@ -565,8 +519,7 @@ def main():
     for i, file in enumerate(uploaded_files, 1):
         size_mb = os.path.getsize(file) / (1024*1024)
         print(f"   {i}. {file} ({size_mb:.1f} MB)")
-    
-    # Use the first image or let user choose
+
     if len(uploaded_files) == 1:
         image_path = uploaded_files[0]
         print(f"Using: {image_path}")
@@ -584,8 +537,7 @@ def main():
         except:
             image_path = uploaded_files[0]
         print(f"Selected: {image_path}")
-    
-    # Interactive query testing
+
     print(f"\nInteractive Query Testing")
     print(f"Enter your search queries to test the system")
     print(f"Examples:")
@@ -626,8 +578,7 @@ def main():
             print(f"  - Query type: {type(query)}")
             import traceback
             traceback.print_exc()
-        
-        # Ask if user wants to continue
+
         if input("\nContinue with another query? (y/n): ").strip().lower() in ['n', 'no']:
             break
     
