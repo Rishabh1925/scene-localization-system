@@ -10,8 +10,6 @@ import json
 
 app = Flask(__name__)
 CORS(app)
-
-# Initialize the localizer
 localizer = None
 
 def initialize_localizer():
@@ -34,13 +32,11 @@ def serve_index():
 def analyze_image():
     """Analyze image with query"""
     try:
-        # Initialize localizer if not done
         if localizer is None:
             initialize_localizer()
             if localizer is None:
                 return jsonify({'error': 'Failed to initialize AI model'}), 500
         
-        # Get data from request
         data = request.json
         if not data:
             return jsonify({'error': 'No data received'}), 400
@@ -51,16 +47,12 @@ def analyze_image():
         if not image_data or not query:
             return jsonify({'error': 'Image and query are required'}), 400
         
-        # Decode base64 image
         try:
-            # Remove data URL prefix if present
             if ',' in image_data:
                 image_data = image_data.split(',')[1]
             
-            # Decode base64
             image_bytes = base64.b64decode(image_data)
             
-            # Save temporary image
             temp_path = 'temp_image.jpg'
             with open(temp_path, 'wb') as f:
                 f.write(image_bytes)
@@ -70,17 +62,14 @@ def analyze_image():
         except Exception as e:
             return jsonify({'error': f'Failed to process image: {str(e)}'}), 400
         
-        # Run detection
         try:
             detections = localizer.localize_scene(temp_path, query)
             
-            # Prepare response
             results = []
             for i, detection in enumerate(detections):
                 bbox = detection['bbox']
                 score = detection['score']
                 
-                # Determine confidence level
                 if score > 0.5:
                     confidence = 'High'
                     confidence_color = '#10b981'
@@ -106,16 +95,13 @@ def analyze_image():
                 }
                 results.append(result)
             
-            # Clean up temp file
             try:
                 os.remove(temp_path)
             except:
                 pass
             
-            # Check if result image exists
             result_image_path = None
             if os.path.exists('improved_result.jpg'):
-                # Convert result image to base64
                 try:
                     with open('improved_result.jpg', 'rb') as f:
                         result_image_data = base64.b64encode(f.read()).decode()
@@ -130,7 +116,6 @@ def analyze_image():
                 'result_image': result_image_path,
                 'message': f'Found {len(results)} detection(s)' if results else 'No confident detections found'
             }
-            
             return jsonify(response)
             
         except Exception as e:
@@ -152,21 +137,15 @@ def health_check():
     })
 
 if __name__ == '__main__':
-    # This check ensures messages only print once.
+
     if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
         print("Starting Scene Localization Server...")
         print("Initializing AI model (this may take a moment)...")
 
-    # Initialize the localizer.
     initialize_localizer()
 
-    # This block also runs only once.
     if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
-        print("-" * 40)
         print("Server is ready. Press Ctrl+C to stop.")
-        # This is the explicit instruction you wanted:
-        print("--> Open your browser and go to: http://127.0.0.1:5000")
-        print("-" * 40)
+        print("\n--> Open your browser and go to: http://127.0.0.1:5000\n")
 
-    # Run the app.
     app.run(debug=True, port=5000)
